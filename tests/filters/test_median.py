@@ -123,3 +123,20 @@ class TestMedianBlur(BaseTester):
         op_optimized = torch_optimizer(op)
 
         self.assert_close(op(data), op_optimized(data))
+
+    def test_empty_batch(self, device, dtype):
+        """Test that median_blur handles empty batch (batch_size=0) correctly.
+        
+        This is a regression test for https://github.com/kornia/kornia/issues/3580
+        All other filter functions (gaussian_blur, box_blur, etc.) handle empty batch
+        correctly by returning an empty tensor with the correct shape.
+        """
+        # Test with empty batch - should return tensor with correct shape
+        empty = torch.empty(0, 1, 64, 64, device=device, dtype=dtype)
+        result = median_blur(empty, (3, 3))
+        assert result.shape == (0, 1, 64, 64), f"Expected (0, 1, 64, 64), got {result.shape}"
+        
+        # Test with different channel and spatial dimensions
+        empty_2ch = torch.empty(0, 3, 32, 48, device=device, dtype=dtype)
+        result_2ch = median_blur(empty_2ch, (5, 5))
+        assert result_2ch.shape == (0, 3, 32, 48), f"Expected (0, 3, 32, 48), got {result_2ch.shape}"
