@@ -57,11 +57,17 @@ def median_blur(input: torch.Tensor, kernel_size: tuple[int, int] | int) -> torc
     KORNIA_CHECK_IS_TENSOR(input)
     KORNIA_CHECK_SHAPE(input, ["B", "C", "H", "W"])
 
+    b, c, h, w = input.shape
+
+    # Handle empty batch case - return empty tensor with correct shape
+    # This matches the behavior of other filters (gaussian_blur, box_blur, etc.)
+    if b == 0:
+        return torch.empty(b, c, h, w, device=input.device, dtype=input.dtype)
+
     padding = _compute_zero_padding(kernel_size)
 
     # prepare kernel
     kernel: torch.Tensor = get_binary_kernel2d(kernel_size, device=input.device, dtype=input.dtype)
-    b, c, h, w = input.shape
 
     # map the local window to single vector
     features: torch.Tensor = F.conv2d(input.reshape(b * c, 1, h, w), kernel, padding=padding, stride=1)
